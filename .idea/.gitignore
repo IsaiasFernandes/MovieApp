@@ -2,16 +2,8 @@
 /shelf/
 /workspace.xml
 
-.gradle/
-.idea/compiler.xml
-.idea/gradle.xml
-.idea/jarRepositories.xml
-.idea/libraries/
-.idea/misc.xml
-.idea/modules.xml
-.idea/modules/
-.idea/runConfigurations.xml
-.idea/vcs.xml
-app/build/
-app/src/main/java/com/raywenderlich/android/movieapp/connectivity/
-local.properties
+**.gradle/
+**.idea/
+
+**/app/src/main/java/com/raywenderlich/android/movieapp/connectivity/
+**/local.properties
