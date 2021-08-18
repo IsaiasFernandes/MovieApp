@@ -1,0 +1,9 @@
+# Default ignored files
+/shelf/
+/.idea/workspace.xml
+
+.gradle/
+.idea/
+app/build/
+/app/src/main/java/com/raywenderlich/android/movieapp/connectivity/
+/local.properties
