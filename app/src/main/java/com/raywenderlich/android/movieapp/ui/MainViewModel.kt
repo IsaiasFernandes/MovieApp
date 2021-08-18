@@ -34,55 +34,92 @@
 
 package com.raywenderlich.android.movieapp.ui
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.*
 import com.raywenderlich.android.movieapp.framework.network.MovieRepository
 import com.raywenderlich.android.movieapp.framework.network.model.Movie
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.raywenderlich.android.movieapp.ui.movies.MovieLoadingState
+import kotlinx.coroutines.*
+import java.lang.Exception
 import javax.inject.Inject
 
 class MainViewModel @Inject constructor(private val repository: MovieRepository) :
     ViewModel() {
 
-  private var debouncePeriod: Long = 500
-  private var searchJob: Job? = null
+    private val _popularMoviesLiveData = MutableLiveData<List<Movie>>()
+    val moviesMediatorData = MediatorLiveData<List<Movie>>()
+    val movieLoadingStateLiveData = MutableLiveData<MovieLoadingState>()
+    private val _searchFieldTextLiveData = MutableLiveData<String>()
+    private val _searchMoviesLiveData: LiveData<List<Movie>>
 
-  fun onFragmentReady() {
-    //TODO Fetch Popular Movies
-  }
+    init {
+        _searchMoviesLiveData = Transformations.switchMap(_searchFieldTextLiveData) {
+            fetchMovieByQuery(it)
+        }
 
-  fun onSearchQuery(query: String) {
-    searchJob?.cancel()
-    searchJob = viewModelScope.launch {
-      delay(debouncePeriod)
-      if (query.length > 2) {
-        //TODO fetch movies by search query
-      }
+        moviesMediatorData.addSource(_popularMoviesLiveData) {
+            moviesMediatorData.value = it
+        }
+
+        moviesMediatorData.addSource(_searchMoviesLiveData) {
+            moviesMediatorData.value = it
+        }
     }
-  }
 
-  private fun fetchPopularMovies() {
-    viewModelScope.launch(Dispatchers.IO) {
-      val movies = repository.fetchPopularMovies()
+    private var debouncePeriod: Long = 500
+    private var searchJob: Job? = null
+
+    fun onFragmentReady() {
+        fetchPopularMovies()
     }
-  }
 
-  private fun fetchMovieByQuery(query: String) {
-    viewModelScope.launch(Dispatchers.IO) {
-      val movies = repository.fetchMovieByQuery(query)
-      // TODO: Update asynchronously
+    fun onSearchQuery(query: String) {
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            delay(debouncePeriod)
+            if (query.length > 2) {
+                _searchFieldTextLiveData.value = query
+            }
+        }
     }
-  }
 
-  fun onMovieClicked(movie: Movie) {
-    // TODO handle navigation to details screen event
-  }
+    private fun fetchPopularMovies() {
+        movieLoadingStateLiveData.value = MovieLoadingState.LOADING
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val movies = repository.fetchPopularMovies()
+                _popularMoviesLiveData.postValue(movies)
+                movieLoadingStateLiveData.postValue(MovieLoadingState.LOADED)
+            } catch (e: Exception) {
+                movieLoadingStateLiveData.postValue(MovieLoadingState.INVALID_API_KEY)
+            }
+        }
+    }
 
-  override fun onCleared() {
-    super.onCleared()
-    searchJob?.cancel()
-  }
+    private fun fetchMovieByQuery(query: String): LiveData<List<Movie>> {
+        val liveData = MutableLiveData<List<Movie>>()
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                withContext(Dispatchers.Main) {
+                    movieLoadingStateLiveData.value = MovieLoadingState.LOADING
+                }
+
+                val movies = repository.fetchMovieByQuery(query)
+                liveData.postValue(movies)
+
+                movieLoadingStateLiveData.postValue(MovieLoadingState.LOADED)
+            } catch (e: Exception) {
+                movieLoadingStateLiveData.postValue(MovieLoadingState.INVALID_API_KEY)
+            }
+        }
+        return liveData
+    }
+
+    fun onMovieClicked(movie: Movie) {
+        // TODO handle navigation to details screen event
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        searchJob?.cancel()
+    }
 }

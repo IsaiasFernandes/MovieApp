@@ -46,7 +46,7 @@ import retrofit2.converter.moshi.MoshiConverterFactory
 import javax.inject.Singleton
 
 private const val BASE_URL = "https://api.themoviedb.org/3/"
-private const val TMDb_API_KEY = "TYPE_YOUR_TMDb_API_KEY_HERE"
+private const val TMDb_API_KEY = "382caa8322487147fba6b1d1f98b3f46"
 
 @Module
 class MovieApiModule {
