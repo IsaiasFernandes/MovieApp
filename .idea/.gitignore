@@ -2,8 +2,8 @@
 /shelf/
 /workspace.xml
 
-**.gradle/
-**.idea/
+*.gradle/
+*.idea/
 
-**/app/src/main/java/com/raywenderlich/android/movieapp/connectivity/
-**/local.properties
+*/app/src/main/java/com/raywenderlich/android/movieapp/connectivity/
+*/local.properties
