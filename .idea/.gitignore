@@ -4,6 +4,6 @@
 
 *.gradle/
 *.idea/
-
+!.idea/.gitignore
 */app/src/main/java/com/raywenderlich/android/movieapp/connectivity/
 */local.properties
