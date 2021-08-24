@@ -42,8 +42,10 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.fragment.findNavController
 import com.raywenderlich.android.movieapp.MovieApplication.Companion.application
 import com.raywenderlich.android.movieapp.R
+import com.raywenderlich.android.movieapp.connectivity.ConnectivityLiveData
 import com.raywenderlich.android.movieapp.framework.network.model.Movie
 import com.raywenderlich.android.movieapp.ui.MainViewModel
 import kotlinx.android.synthetic.main.fragment_movie_list.*
@@ -54,6 +56,7 @@ class MovieListFragment : Fragment(R.layout.fragment_movie_list),
 
   private lateinit var mainViewModel: MainViewModel
   private lateinit var movieAdapter: MovieAdapter
+  private lateinit var connectivityLiveData: ConnectivityLiveData
 
   @Inject
   lateinit var viewModelFactory: ViewModelProvider.Factory
@@ -71,7 +74,7 @@ class MovieListFragment : Fragment(R.layout.fragment_movie_list),
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-
+    connectivityLiveData = ConnectivityLiveData(application)
     application.appComponent.inject(this)
     mainViewModel = ViewModelProvider(requireActivity(), viewModelFactory).get(
         MainViewModel::class.java)
@@ -81,16 +84,40 @@ class MovieListFragment : Fragment(R.layout.fragment_movie_list),
     super.onActivityCreated(savedInstanceState)
     initialiseObservers()
     initialiseUIElements()
-    mainViewModel.onFragmentReady()
   }
 
   private fun initialiseObservers() {
+    connectivityLiveData.observe(viewLifecycleOwner, Observer { isAvaible ->
+      when(isAvaible) {
+        true -> {
+          mainViewModel.onFragmentReady()
+          statusButton.visibility = View.GONE
+          moviesRecyclerView.visibility = View.VISIBLE
+          searchEditText.visibility = View.VISIBLE
+        }
+
+        false -> {
+          statusButton.visibility = View.VISIBLE
+          moviesRecyclerView.visibility = View.GONE
+          searchEditText.visibility = View.GONE
+        }
+      }
+    })
+
     mainViewModel.moviesMediatorData.observe( viewLifecycleOwner, Observer {
       movieAdapter.updateData(it)
     })
 
     mainViewModel.movieLoadingStateLiveData.observe( viewLifecycleOwner, Observer {
         onMovieLoadingStateChanged(it)
+    })
+
+    mainViewModel.navigateToDetails.observe( viewLifecycleOwner, Observer {
+        it?.getContentIfNotHandled()?.let { movieTitle ->
+          findNavController().navigate(
+            MovieListFragmentDirections.actionMovieClicked(movieTitle)
+          )
+        }
     })
   }
 
@@ -115,8 +142,15 @@ class MovieListFragment : Fragment(R.layout.fragment_movie_list),
         loadingProgressBar.visibility = View.VISIBLE
       }
       MovieLoadingState.LOADED -> {
-        statusButton.visibility = View.GONE
-        moviesRecyclerView.visibility = View.VISIBLE
+        connectivityLiveData.value?.let {
+          if(it) {
+            statusButton.visibility = View.GONE
+            moviesRecyclerView.visibility = View.VISIBLE
+          } else {
+            statusButton.visibility = View.VISIBLE
+            moviesRecyclerView.visibility = View.GONE
+          }
+        }
         loadingProgressBar.visibility = View.GONE
       }
       MovieLoadingState.ERROR -> {

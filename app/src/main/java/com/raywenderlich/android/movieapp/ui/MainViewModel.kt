@@ -50,6 +50,9 @@ class MainViewModel @Inject constructor(private val repository: MovieRepository)
     val movieLoadingStateLiveData = MutableLiveData<MovieLoadingState>()
     private val _searchFieldTextLiveData = MutableLiveData<String>()
     private val _searchMoviesLiveData: LiveData<List<Movie>>
+    private val _navigateToDetails = MutableLiveData<Event<String>>()
+    val navigateToDetails: LiveData<Event<String>>
+    get() = _navigateToDetails
 
     init {
         _searchMoviesLiveData = Transformations.switchMap(_searchFieldTextLiveData) {
@@ -69,7 +72,9 @@ class MainViewModel @Inject constructor(private val repository: MovieRepository)
     private var searchJob: Job? = null
 
     fun onFragmentReady() {
-        fetchPopularMovies()
+        if (_popularMoviesLiveData.value.isNullOrEmpty()) {
+            fetchPopularMovies()
+        }
     }
 
     fun onSearchQuery(query: String) {
@@ -115,7 +120,9 @@ class MainViewModel @Inject constructor(private val repository: MovieRepository)
     }
 
     fun onMovieClicked(movie: Movie) {
-        // TODO handle navigation to details screen event
+       movie.title?.let {
+           _navigateToDetails.value = Event(it)
+       }
     }
 
     override fun onCleared() {
